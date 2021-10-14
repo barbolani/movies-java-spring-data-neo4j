@@ -1,5 +1,6 @@
 package movies.spring.data.neo4j.movies;
 
+import movies.spring.data.neo4j.api.MovieController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.driver.Driver;
@@ -12,10 +13,7 @@ import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import java.util.List;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @Testcontainers
 @SpringBootTest
@@ -50,43 +48,17 @@ class MovieServiceTest {
         }
     }
 
-    @Test
-    public void searches_movies_by_title(@Autowired MovieService service) {
-        String title = "Matrix Re";
-        assertThat(service.searchMoviesByTitle(title))
-                .hasSize(2)
-                .extracting(mr -> mr.getMovie().getTitle()).containsExactlyInAnyOrder("The Matrix Reloaded", "The Matrix Revolutions");
-    }
-
-    @Test
-    public void fetches_movie_details(@Autowired MovieService service) {
-        MovieDetailsDto details = service.fetchDetailsByTitle("The Matrix");
-
-        assertThat(details.getTitle()).isEqualTo("The Matrix");
-        assertThat(details.getCast()).containsExactly(new CastMemberDto("Keanu Reeves", "acted", "Neo"));
-    }
-
-    @Test
-    public void fetches_d3_graph(@Autowired MovieService service) {
-        Map<String, List<Object>> d3Graph = service.fetchMovieGraph();
-
-        assertThat(d3Graph).isEqualTo(
-                Map.of(
-                        "links", List.of(
-                                Map.of("source", 1, "target", 0)
-                        ),
-                        "nodes", List.of(
-                                Map.of("label", "movie", "title", "The Matrix"),
-                                Map.of("label", "actor", "title", "Keanu Reeves")
-                        )
-                ));
-    }
-
     private static String env(String name, String defaultValue) {
         String value = System.getenv(name);
         if (value == null) {
             return defaultValue;
         }
         return value;
+    }
+    @Test
+    public void searches_movies_by_title(@Autowired MovieController controller) {
+        String title = "Matrix Re";
+        assertThat(controller.reactiveSearch(title).join()).asList()
+                .hasSize(64);
     }
 }
